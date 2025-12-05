@@ -100,7 +100,7 @@ K = lqr(A, B, Q, R);
 
 %% Simulate
 
-controller = @(x) switchingController(x,p,0.4,kp,kd, K);
+controller = @(x) switchingController(x,p,0.4, K, @(x,p)linearizedPD(x, [pi/2; 0; 0; 0], p, kp, kd));
 sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 10,1000), x0);
 
 %% animate
@@ -125,4 +125,52 @@ plot(t, x(3,:), t, x(4,:))
 
 
 %% Energy Based Swingup
+alpha = 0.2;
+controller = @(x)energyController(x,p,kp,kd, alpha);
 
+sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 100,1000), x0+[0.2; 0; 0; 0]);
+
+%% animate
+for i = 1:length(sol.x)
+    figure(1)
+    clf; hold on;
+    animate(sol.x(i), sol.y(:,i), p)
+    drawnow
+    pause(0.01)
+end
+
+%% plot
+t = sol.x;
+x = sol.y;
+
+figure(2)
+subplot(2,1,1)
+plot(t, x(1,:), t, x(2,:))
+
+subplot(2,1,2)
+plot(t, x(3,:), t, x(4,:))
+
+%% Now energy swingup with stabilization
+controller = @(x) switchingController(x,p,0.1, K, @(x,p)energyController(x,p,kp,kd, alpha));
+
+sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 100,1000), x0+[0.2; 0; 0; 0]);
+
+%% animate
+for i = 1:length(sol.x)
+    figure(1)
+    clf; hold on;
+    animate(sol.x(i), sol.y(:,i), p)
+    drawnow
+    pause(0.01)
+end
+
+%% plot
+t = sol.x;
+x = sol.y;
+
+figure(2)
+subplot(2,1,1)
+plot(t, x(1,:), t, x(2,:))
+
+subplot(2,1,2)
+plot(t, x(3,:), t, x(4,:))

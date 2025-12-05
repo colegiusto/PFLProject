@@ -1,10 +1,10 @@
-function u = switchingController(x,p,margin, kp, kd, K)
+function u = switchingController(x,p,margin, K, swingup)
     
     
-    error = x(1)+x(2) - pi/2
+    error = x(1)+x(2) - pi/2;
 
     if abs(error) > margin
-        u = linearizedPD(x, [pi/2; 0; 0; 0], p, kp, kd);
+        u = swingup(x,p);
         return
     end
     
