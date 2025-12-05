@@ -1,0 +1,6 @@
+function u = switchingController(x,p,bounds, kp, kd, K)
+    u = linearizedPD(x, [pi/2; 0; 0; 0], p, kp, kd);
+    
+    error = x
+end
+
