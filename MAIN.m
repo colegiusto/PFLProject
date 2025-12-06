@@ -1,5 +1,5 @@
-%% PFL for the Acrobot
-% Define parameters of dynamcics
+%% PFL swingup for the Acrobot
+% Define parameters of dynamics (From spong95)
 
 p.g = 9.8;
 p.m1 = 1;
