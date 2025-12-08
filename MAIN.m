@@ -1,5 +1,6 @@
 %% PFL swingup for the Acrobot
 % Define parameters of dynamics (From spong95)
+clear
 
 p.g = 9.8;
 p.m1 = 1;
@@ -18,14 +19,16 @@ J = @(x,h,F)(F(repmat(x,size(x'))+diag(h))-F(repmat(x,size(x'))))./h';
 
 %% Calculate zero dynamics phase portrait
 
+% zero dynamics when q1 = q1_ref, dq1 = 0
+
 q1_ref = pi/2;
 
-% figure(1)
-% clf; hold on;
-% animate(0, [q1_ref 0 0 0], p)
+%meshgrid for phase portrait
 
 N = 10;
 [q2s, dq2s] = meshgrid(linspace(-2*pi, 2*pi, N), linspace(-20,20, N));
+
+%calculate vector field
 
 dirs = zeros([size(q2s), 2]);
 for i = 1:length(dirs)
@@ -44,6 +47,7 @@ for i = 1:length(dirs)
     end
 end
 
+%plot result
 streamline(q2s, dq2s, dirs(:,:,1), dirs(:,:,2), q2s, dq2s)
 xlim([-pi*2,pi*2])
 ylim([-20,20])
@@ -54,6 +58,7 @@ ylabel("dq2")
 
 %% Simulate convergence to zero dynamics with PD control
 
+%PD parameters to be tuned in order to approximate swingup
 
 kp = 29.8;
 kd = 8;
@@ -83,12 +88,17 @@ x = sol.y;
 figure(2)
 subplot(2,1,1)
 plot(t, x(1,:), t, x(2,:))
+legend("q1", "q2")
 
 subplot(2,1,2)
 plot(t, x(3,:), t, x(4,:))
+legend("dq1", "dq2")
 
 
 %% Calculate linear LQR controller
+
+%We will switch to this at the top, so calculate linear system around the
+%top eq
 
 A = J([pi/2; 0; 0; 0], 1e-5*ones(1,4), @(x)dynamics(x,0,p));
 B = J(0, 1e-5, @(u)dynamics([pi/2; 0; 0; 0], u, p));
@@ -96,9 +106,11 @@ B = J(0, 1e-5, @(u)dynamics([pi/2; 0; 0; 0], u, p));
 Q = eye(4);
 R = 1;
 
+%optimal gain
 K = lqr(A, B, Q, R);
 
 %% Simulate
+%Switching controller does the swingup, then stabilizes the top
 
 controller = @(x) switchingController(x,p,0.4, K, @(x,p)linearizedPD(x, [pi/2; 0; 0; 0], p, kp, kd));
 sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 10,1000), x0);
@@ -119,16 +131,23 @@ x = sol.y;
 figure(2)
 subplot(2,1,1)
 plot(t, x(1,:), t, x(2,:))
+legend("q1", "q2")
 
 subplot(2,1,2)
 plot(t, x(3,:), t, x(4,:))
+legend("dq1", "dq2")
 
 
 %% Energy Based Swingup
+
+%Parameter determining maximum angle of q2
 alpha = 0.2;
+
+%Use same Kp and Kd
 controller = @(x)energyController(x,p,kp,kd, alpha);
 
-sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 100,1000), x0+[0.2; 0; 0; 0]);
+%Simulate for 50s because swingup is slower
+sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 50,500), x0+[0.2; 0; 0; 0]);
 
 %% animate
 for i = 1:length(sol.x)
@@ -151,9 +170,11 @@ subplot(2,1,2)
 plot(t, x(3,:), t, x(4,:))
 
 %% Now energy swingup with stabilization
+
+%Use same stabilization and switching
 controller = @(x) switchingController(x,p,0.1, K, @(x,p)energyController(x,p,kp,kd, alpha));
 
-sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 100,1000), x0+[0.2; 0; 0; 0]);
+sol = ode45(@(t,x)dynamics(x, controller(x), p), linspace(0, 60,600), x0+[0.2; 0; 0; 0]);
 
 %% animate
 for i = 1:length(sol.x)
